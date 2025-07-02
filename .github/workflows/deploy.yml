@@ -1,0 +1,27 @@
+name: Salesforce CI/CD
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Install Salesforce CLI
+        run: npm install -g sfdx-cli
+
+      - name: Setup Auth URL
+        run: echo "${{ secrets.SALESFORCE_AUTH_URL }}" > authURL.txt
+
+      - name: Authenticate to Salesforce Org
+        run: sfdx auth:sfdxurl:store -f authURL.txt -a DevOrg
+
+      - name: Deploy metadata
+        run: sfdx force:source:deploy -p force-app -u DevOrg --json --loglevel fatal
+
+      - name: Run Apex Tests
+        run: sfdx force:apex:test:run -u DevOrg --resultformat human --codecoverage --wait 10
